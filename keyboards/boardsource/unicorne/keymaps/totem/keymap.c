@@ -7,6 +7,7 @@
 // NUM:    NAV + SYM tri-layer
 
 #include QMK_KEYBOARD_H
+#include <stdlib.h>
 
 enum layers {
     LAYER_BASE = 0,
@@ -93,3 +94,132 @@ combo_t key_combos[] = {
 layer_state_t layer_state_set_user(layer_state_t state) {
     return update_tri_layer_state(state, LAYER_NAV, LAYER_SYM, LAYER_NUM);
 }
+
+#ifdef OLED_ENABLE
+// Portrait 32x128: 5 text columns x 16 rows. Right half is mounted flipped.
+oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+    return is_keyboard_master() ? OLED_ROTATION_270 : OLED_ROTATION_90;
+}
+
+static const char PROGMEM layer_names[][6] = {
+    [LAYER_BASE] = "BASE ",
+    [LAYER_NAV]  = " NAV ",
+    [LAYER_SYM]  = " SYM ",
+    [LAYER_NUM]  = " NUM ",
+};
+
+static void render_status(void) {
+    oled_write_ln_P(PSTR("LAYER"), false);
+    oled_write_P(PSTR("     "), true);
+    oled_write_P(layer_names[get_highest_layer(layer_state)], true);
+    oled_write_P(PSTR("     "), true);
+    oled_write_ln_P(PSTR(""), false);
+
+    uint8_t mods = get_mods() | get_oneshot_mods();
+    oled_write_ln_P(PSTR("MODS"), false);
+    oled_write_P(PSTR(" GUI "), mods & MOD_MASK_GUI);
+    oled_write_P(PSTR(" ALT "), mods & MOD_MASK_ALT);
+    oled_write_P(PSTR(" CTL "), mods & MOD_MASK_CTRL);
+    oled_write_P(PSTR(" SFT "), mods & MOD_MASK_SHIFT);
+    oled_write_ln_P(PSTR(""), false);
+
+    bool caps = is_caps_word_on() || host_keyboard_led_state().caps_lock;
+    oled_write_P(PSTR("CAPS "), caps);
+}
+
+// Matrix rain on a grid of 4x4 px cells (8 columns x 32 rows); each cell
+// holds a random 3x3 "glyph" so the trail reads as characters, not lines.
+#define RAIN_COLS 8
+#define RAIN_ROWS 32
+#define RAIN_FRAME_MS 60
+
+typedef struct {
+    int8_t  head;
+    uint8_t len;
+    uint8_t speed;
+    uint8_t tick;
+} rain_drop_t;
+
+static rain_drop_t rain[RAIN_COLS];
+static uint16_t    glyphs[RAIN_COLS][RAIN_ROWS];
+
+static void rain_respawn(rain_drop_t *d) {
+    d->head  = -(rand() % RAIN_ROWS);
+    d->len   = 6 + rand() % 14;
+    d->speed = 1 + rand() % 3;
+    d->tick  = 0;
+}
+
+static void rain_init(void) {
+    srand(timer_read());
+    for (uint8_t c = 0; c < RAIN_COLS; c++) {
+        rain_respawn(&rain[c]);
+        for (uint8_t r = 0; r < RAIN_ROWS; r++) {
+            glyphs[c][r] = rand() & 0x1FF;
+        }
+    }
+}
+
+static void draw_glyph(uint8_t col, uint8_t row, uint16_t bits) {
+    for (uint8_t b = 0; b < 9; b++) {
+        if (bits & (1 << b)) {
+            oled_write_pixel(col * 4 + b % 3, row * 4 + b / 3, true);
+        }
+    }
+}
+
+static void render_rain(void) {
+    static bool     ready = false;
+    static uint16_t frame = 0;
+    if (!ready) {
+        rain_init();
+        ready = true;
+    }
+    if (timer_elapsed(frame) < RAIN_FRAME_MS) {
+        return;
+    }
+    frame = timer_read();
+
+    for (uint8_t i = 0; i < 4; i++) {
+        glyphs[rand() % RAIN_COLS][rand() % RAIN_ROWS] = rand() & 0x1FF;
+    }
+
+    oled_clear();
+    for (uint8_t c = 0; c < RAIN_COLS; c++) {
+        rain_drop_t *d = &rain[c];
+        if (++d->tick >= d->speed) {
+            d->tick = 0;
+            if (++d->head - d->len > RAIN_ROWS) {
+                rain_respawn(d);
+            }
+        }
+        for (uint8_t i = 0; i < d->len; i++) {
+            int16_t row = d->head - i;
+            if (row < 0 || row >= RAIN_ROWS) {
+                continue;
+            }
+            uint16_t bits = glyphs[c][row];
+            if (i == 0) {
+                bits = 0x1FF;
+            } else if (i > d->len * 2 / 3) {
+                bits &= 0x0AA;
+            }
+            draw_glyph(c, row, bits);
+        }
+    }
+}
+
+bool oled_task_user(void) {
+    // Any redraw wakes the panel, so stop drawing once idle to let it sleep.
+    if (last_input_activity_elapsed() > OLED_TIMEOUT) {
+        oled_off();
+        return false;
+    }
+    if (is_keyboard_master()) {
+        render_status();
+    } else {
+        render_rain();
+    }
+    return false;
+}
+#endif

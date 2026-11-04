@@ -19,3 +19,7 @@
 #define PERMISSIVE_HOLD
 
 #define DEBOUNCE 3
+
+#define OLED_TIMEOUT 30000
+/* Right half needs to know about keypresses to keep its OLED awake. */
+#define SPLIT_ACTIVITY_ENABLE
