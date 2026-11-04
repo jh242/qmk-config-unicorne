@@ -19,7 +19,9 @@ Forked from the [`qmk/qmk_userspace`](https://github.com/qmk/qmk_userspace) temp
 | **BASE** | default | Home-row mods (urob-style CHORDAL + FLOW + PERMISSIVE) |
 | **NAV** | hold left-outer thumb (`MO`) | Numbers + vim arrows / Home End Pg |
 | **SYM** | hold right-outer thumb (`MO`) | Brackets / operators |
-| **NUM** | NAV + SYM | F-keys, numpad, `QK_BOOT` / `EE_CLR`, RGB |
+| **NUM** | NAV + SYM | F-keys, numpad, `QK_BOOT` / `EE_CLR` |
+
+RGB is compiled out.
 
 **Combos:** `J`+`K` → Esc · `Z`+`X` → Caps Word
 

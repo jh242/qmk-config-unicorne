@@ -52,7 +52,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   [LAYER_NUM] = LAYOUT_split_3x6_3(
        _______, KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,       KC_PAST, KC_7,    KC_8,    KC_9,    KC_PMNS, _______,
-       _______, RM_TOGG, RM_NEXT, RM_PREV, RM_HUEU, RM_SATU,     KC_PSLS, KC_4,    KC_5,    KC_6,    KC_PPLS, _______,
+       _______, _______, _______, _______, _______, _______,     KC_PSLS, KC_4,    KC_5,    KC_6,    KC_PPLS, _______,
        QK_BOOT, EE_CLR,  _______, _______, KC_F11,  KC_F12,      KC_0,    KC_1,    KC_2,    KC_3,    KC_DOT,  KC_BSPC,
                                   _______, _______, _______,     _______, _______, _______
   ),

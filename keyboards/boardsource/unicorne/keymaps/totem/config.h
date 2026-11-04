@@ -18,5 +18,4 @@
 #define CHORDAL_HOLD
 #define PERMISSIVE_HOLD
 
-/* Snappier matrix; Unicorne RGB is heavy enough already. */
 #define DEBOUNCE 3
